@@ -11,6 +11,10 @@ import yaml
 
 
 def get_aws_config():
+    ''' Function allows to parse local AWS configuration if it exists. After
+    the parsing process it returns region and output values from the AWS config
+    file '''
+
     users_home = expanduser('~')
     aws_config = configparser.ConfigParser()
     aws_config.read('{}/.aws/config'.format(users_home))
