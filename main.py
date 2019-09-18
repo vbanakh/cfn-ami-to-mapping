@@ -18,30 +18,18 @@ def get_aws_config():
     users_home = expanduser('~')
     aws_config = configparser.ConfigParser()
     aws_config.read('{}/.aws/config'.format(users_home))
-    if aws_config:
-        default_region = aws_config['default']['region']
-        default_output = aws_config['default']['output']
-        if default_output != 'json' and default_output != 'yaml':
-            default_output = None
-        return default_region, default_output
-    else:
-        return None, None
+    return aws_config
 
 
-def parse_arguments(default_region, default_output):
+def parse_arguments(default_region):
     ''' Function allows to parse arguments from the line input and check if all
     of them are entered correctly '''
-    if default_output == 'json':
-        json_default = True
-        yaml_default = False
-    else:
-        json_default = False
-        yaml_default = True
+
     parser = argparse.ArgumentParser(description='Create mapping for CloudFormation with AMIs by region',
                                     epilog='')
     output_format_group = parser.add_mutually_exclusive_group(required=False)
-    output_format_group.add_argument('-j', '--json', action="store_true", default=json_default)
-    output_format_group.add_argument('-y', '--yaml', action="store_true", default=yaml_default)
+    output_format_group.add_argument('-j', '--json', action="store_true")
+    output_format_group.add_argument('-y', '--yaml', action="store_true", default=True)
     ami_identifier_group = parser.add_mutually_exclusive_group(required=True)
     ami_identifier_group.add_argument('-i', '--image-id', action='append')
     ami_identifier_group.add_argument('-n', '--image-name', action='append')
@@ -59,7 +47,6 @@ def parse_arguments(default_region, default_output):
     elif args.image_name:
         if len(args.image_name) != len(args.top_level_key):
             parser.error("Number of -n/--image-name should be equal to number of -k/--top-level-key")
-    print(args)
     return args
 
 
@@ -88,6 +75,7 @@ def get_client(resource, region):
     to the function '''
 
     try:
+        print (region)
         return boto3.client(resource, region_name=region)
     except ClientError as e:
         print('Unexpected error: {}'.format(e))
@@ -217,8 +205,8 @@ def dictionary_to_yaml(images_map):
 def main():
     ''' Main fucntion provides communication between all other functions '''
 
-    default_region, default_output = get_aws_config()
-    args = parse_arguments(default_region, default_output)
+    aws_config = get_aws_config()
+    args = parse_arguments(aws_config['default']['region'])
     client = get_client('ec2', args.region)
     aws_regions = get_regions(client)
     if args.image_id:
